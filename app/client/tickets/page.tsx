@@ -1,4 +1,4 @@
-import { getToken, getUser } from '@/lib/auth';
+import { getToken } from '@/lib/auth';
 import { ticketsApi, projectsApi } from '@/lib/api';
 import { ClientTicketsClient } from './ClientTicketsClient';
 
@@ -6,8 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function ClientTicketsPage() {
   const token = await getToken();
-  const user  = await getUser();
-  if (!token || !user) return null;
+  if (!token) return null;
 
   const [ticketsRes, projectsRes] = await Promise.allSettled([
     ticketsApi.list(token, { page_size: 50 }),
@@ -17,5 +16,5 @@ export default async function ClientTicketsPage() {
   const tickets  = ticketsRes.status  === 'fulfilled' ? ticketsRes.value.items  : [];
   const projects = projectsRes.status === 'fulfilled' ? projectsRes.value.items : [];
 
-  return <ClientTicketsClient tickets={tickets} projects={projects} currentUser={user} />;
+  return <ClientTicketsClient tickets={tickets} projects={projects} />;
 }
