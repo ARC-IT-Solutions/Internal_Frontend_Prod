@@ -1,227 +1,113 @@
 'use client';
-
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import type { User, Paginated } from '@/types';
-import { Badge, Btn, Select, Input, Alert, SectionLabel, Modal } from '@/components/ui';
+import { Badge, Button, Input, Select, Alert, Modal, EmptyState } from '@/components/ui';
 import { PageShell, ListHeader, EmptyDetail, DetailHeader, DetailBody, Section } from '@/components/modules/PageShell';
-import { fullDate, initials, relTime } from '@/lib/utils';
+import { initials, fullDate } from '@/lib/utils';
 import { registerUserAction, updateUserAction } from '@/app/actions';
-import { UserPlus, CheckCircle, XCircle, Copy } from 'lucide-react';
 
 const ROLES = ['admin','employee','client'] as const;
+const RC: Record<string,{bg:string;color:string}> = { admin:{bg:'rgba(240,136,62,.18)',color:'#F0883E'}, employee:{bg:'rgba(56,139,253,.18)',color:'#388bfd'}, client:{bg:'rgba(63,185,80,.18)',color:'#3fb950'} };
 
-const ROLE_COLORS: Record<string, string> = {
-  admin:    'bg-amber-500/15 text-amber-400',
-  employee: 'bg-blue-500/12 text-blue-400',
-  client:   'bg-green-500/12 text-green-400',
-};
-
-const AVATAR_BG: Record<string, string> = {
-  admin:    'bg-[#854F0B]',
-  employee: 'bg-[#185FA5]',
-  client:   'bg-[#0F6E56]',
-};
-
-export function UsersClient({
-  users,
-  currentUser,
-}: {
-  users: Paginated<User>;
-  currentUser: User;
-}) {
+export function UsersClient({ users, currentUser }: { users: Paginated<User>; currentUser: User }) {
   const router = useRouter();
-  const [selected, setSelected]       = useState<User | null>(null);
-  const [isPending, startTransition]  = useTransition();
-  const [error, setError]   = useState('');
-  const [success, setSuccess] = useState('');
-  const [showRegister, setShowRegister] = useState(false);
-  const [copied, setCopied] = useState('');
+  const [sel, setSel]        = useState<User|null>(null);
+  const [isPend, startTrans] = useTransition();
+  const [err, setErr]        = useState('');
+  const [ok,  setOk]         = useState('');
+  const [showReg, setShowReg]= useState(false);
+  const [rf, setRf] = useState({ full_name:'', email:'', phone:'', password:'', role:'client' });
+  const notify = (m:string,t:'ok'|'err') => { t==='ok'?(setOk(m),setErr('')):(setErr(m),setOk('')); setTimeout(()=>{setOk('');setErr('');},6000); };
 
-  // Register form
-  const [rf, setRf] = useState({ full_name: '', email: '', phone: '', password: '', role: 'client' });
-
-  function notify(msg: string, type: 'ok' | 'err') {
-    type === 'ok' ? (setSuccess(msg), setError('')) : (setError(msg), setSuccess(''));
-    setTimeout(() => { setSuccess(''); setError(''); }, 6000);
+  async function doReg() {
+    if (!rf.full_name||!rf.email||!rf.password) return setErr('Name, email and password required.');
+    startTrans(async () => { const r = await registerUserAction({...rf,phone:rf.phone||undefined}); if(r.ok){notify(`Created! ID: ${(r.data as User).id}`,'ok');setShowReg(false);setRf({full_name:'',email:'',phone:'',password:'',role:'client'});router.refresh();}else notify(r.error,'err'); });
   }
-
-  async function handleRegister() {
-    if (!rf.full_name || !rf.email || !rf.password) return setError('Name, email, and password are required.');
-    startTransition(async () => {
-      const r = await registerUserAction({ ...rf, phone: rf.phone || undefined });
-      if (r.ok) {
-        notify(`Account created! ID: ${(r.data as User).id}`, 'ok');
-        setShowRegister(false);
-        setRf({ full_name: '', email: '', phone: '', password: '', role: 'client' });
-        router.refresh();
-      } else notify(r.error, 'err');
-    });
-  }
-
-  async function handleUpdate(field: string, value: unknown) {
-    if (!selected) return;
-    startTransition(async () => {
-      const r = await updateUserAction(selected.id, { [field]: value });
-      if (r.ok) {
-        setSelected(r.data as User);
-        notify('Updated.', 'ok');
-        router.refresh();
-      } else notify(r.error, 'err');
-    });
-  }
-
-  function copyToClipboard(text: string, label: string) {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(label);
-      setTimeout(() => setCopied(''), 2000);
-    });
+  async function update(field:string,value:unknown) {
+    if (!sel) return;
+    startTrans(async () => { const r = await updateUserAction(sel.id,{[field]:value}); if(r.ok){setSel(r.data as User);notify('Updated.','ok');router.refresh();}else notify(r.error,'err'); });
   }
 
   return (
     <>
       <PageShell
-        listSlot={
+        list={
           <>
-            <ListHeader
-              title="Users"
-              count={users.total}
-              actions={
-                <Btn variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => setShowRegister(true)}>
-                  <UserPlus size={12} /> Onboard
-                </Btn>
-              }
+            <ListHeader title="Users" count={users.total}
+              actions={<button onClick={()=>setShowReg(true)} style={{ width:28, height:28, borderRadius:7, border:'1px solid rgba(255,255,255,.1)', background:'transparent', cursor:'pointer', color:'#F0883E', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>}
             />
-            <div className="flex-1 overflow-y-auto">
-              {users.items.length === 0 && (
-                <div className="flex items-center justify-center py-12 text-[#484f58] text-sm">No users</div>
-              )}
-              {users.items.map(u => (
-                <button key={u.id} onClick={() => setSelected(u)}
-                  className={`w-full text-left flex items-center gap-3 px-3 py-2.5 border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors ${selected?.id === u.id ? 'bg-white/[0.05]' : ''}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold text-white flex-shrink-0 ${AVATAR_BG[u.role] ?? 'bg-[#484f58]'}`}>
-                    {initials(u.full_name)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] font-medium text-[#e6edf3] truncate">{u.full_name}</span>
-                      <span className="text-[10px] font-mono text-[#484f58]">{relTime(u.created_at)}</span>
+            <div style={{ flex:1, overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.06) transparent' }}>
+              {users.items.length===0&&<EmptyState title="No users"/>}
+              {users.items.map((u,i) => {
+                const active = sel?.id===u.id;
+                const rc = RC[u.role]??{bg:'rgba(255,255,255,.1)',color:'var(--s-sub)'};
+                return (
+                  <motion.button key={u.id} initial={{opacity:0,x:-6}} animate={{opacity:1,x:0}} transition={{delay:i*0.02}}
+                    onClick={()=>setSel(u)} style={{ width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10, padding:'10px 14px', border:'none', borderBottom:'1px solid rgba(255,255,255,0.04)', background:active?'rgba(255,255,255,0.04)':'transparent', cursor:'pointer' }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0, background:rc.bg, color:rc.color }}>{initials(u.full_name)}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:active?500:400, color:active?'var(--s-text)':'var(--s-sub)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.full_name}</div>
+                      <div style={{ fontSize:11, color:'var(--s-dim)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.email}</div>
+                      <div style={{ display:'flex', gap:5, marginTop:3 }}>
+                        <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', color:rc.color }}>{u.role}</span>
+                        {!u.is_active&&<span style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#f85149', textTransform:'uppercase' }}>inactive</span>}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-[#484f58] truncate">{u.email}</div>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider ${ROLE_COLORS[u.role] ?? ''}`}>{u.role}</span>
-                      {!u.is_active && <span className="text-[9px] text-red-400 font-mono uppercase">Inactive</span>}
-                      {!u.is_verified && <span className="text-[9px] text-[#484f58] font-mono uppercase">Unverified</span>}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </motion.button>
+                );
+              })}
             </div>
           </>
         }
-        detailSlot={
-          !selected ? <EmptyDetail text="Select a user or onboard a new one" /> : (
+        detail={
+          !sel ? <EmptyDetail text="Select a user"/> : (
             <>
               <DetailHeader
-                title={selected.full_name}
-                sub={selected.email}
-                badges={
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider ${ROLE_COLORS[selected.role] ?? ''}`}>
-                    {selected.role}
-                  </span>
-                }
+                title={sel.full_name} sub={sel.email}
+                badges={<span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', padding:'2px 8px', borderRadius:4, background:(RC[sel.role]??{bg:'rgba(255,255,255,.1)'}).bg, color:(RC[sel.role]??{color:'var(--s-sub)'}).color }}>{sel.role}</span>}
               />
               <DetailBody>
-                {(error || success) && <Alert type={error ? 'error' : 'success'} message={error || success} />}
-
+                {(err||ok)&&<Alert type={err?'error':'success'} message={err||ok}/>}
                 <Section label="Account Info">
-                  <table className="w-full"><tbody>
-                    <tr className="border-b border-white/[0.04]">
-                      <td className="py-1.5 pr-4 text-[11px] text-[#8b949e] w-28">User ID</td>
-                      <td className="py-1.5">
-                        <div className="flex items-center gap-2">
-                          <code className="text-[11px] font-mono text-[#e6edf3] bg-[#1c2128] px-2 py-0.5 rounded">{selected.id}</code>
-                          <button onClick={() => copyToClipboard(selected.id, 'id')} className="text-[#484f58] hover:text-[#8b949e]">
-                            <Copy size={11} />
-                          </button>
-                          {copied === 'id' && <span className="text-[10px] text-green-400">Copied!</span>}
-                        </div>
-                      </td>
-                    </tr>
-                    <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">Phone</td><td className="py-1.5 text-[12px] text-[#e6edf3]">{selected.phone ?? '—'}</td></tr>
-                    <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">Active</td>
-                      <td className="py-1.5">{selected.is_active
-                        ? <span className="flex items-center gap-1 text-[12px] text-green-400"><CheckCircle size={12} /> Active</span>
-                        : <span className="flex items-center gap-1 text-[12px] text-red-400"><XCircle size={12} /> Inactive</span>}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">Verified</td>
-                      <td className="py-1.5">{selected.is_verified
-                        ? <span className="flex items-center gap-1 text-[12px] text-green-400"><CheckCircle size={12} /> Verified</span>
-                        : <span className="flex items-center gap-1 text-[12px] text-[#484f58]"><XCircle size={12} /> Unverified</span>}
-                      </td>
-                    </tr>
-                    <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">Joined</td><td className="py-1.5 text-[12px] text-[#e6edf3]">{fullDate(selected.created_at)}</td></tr>
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}><tbody>
+                    {[['ID',sel.id],['Phone',sel.phone??'—'],['Active',sel.is_active?'Yes':'No'],['Verified',sel.is_verified?'Yes':'No'],['Created',fullDate(sel.created_at)]].map(([l,v])=>(
+                      <tr key={l} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                        <td style={{ padding:'7px 12px 7px 0', fontSize:11, color:'var(--s-dim)', width:80 }}>{l}</td>
+                        <td style={{ padding:'7px 0', fontSize:11, fontFamily:'var(--font-mono)', color:'var(--s-text)', wordBreak:'break-all' }}>{v as string}</td>
+                      </tr>
+                    ))}
                   </tbody></table>
                 </Section>
-
-                <Section label="Manage Account">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div>
-                      <SectionLabel>Role</SectionLabel>
-                      <Select value={selected.role} onChange={e => handleUpdate('role', e.target.value)} className="w-full" disabled={isPending}>
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </Select>
-                    </div>
-                    <div>
-                      <SectionLabel>Active</SectionLabel>
-                      <Select value={String(selected.is_active)} onChange={e => handleUpdate('is_active', e.target.value === 'true')} className="w-full" disabled={isPending}>
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                      </Select>
-                    </div>
-                    <div>
-                      <SectionLabel>Verified</SectionLabel>
-                      <Select value={String(selected.is_verified)} onChange={e => handleUpdate('is_verified', e.target.value === 'true')} className="w-full" disabled={isPending}>
-                        <option value="true">Verified</option>
-                        <option value="false">Unverified</option>
-                      </Select>
-                    </div>
+                <Section label="Manage">
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
+                    <Select label="Role" value={sel.role} onChange={e=>update('role',e.target.value)} style={{ width:'100%' }} disabled={isPend}>{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</Select>
+                    <Select label="Active" value={String(sel.is_active)} onChange={e=>update('is_active',e.target.value==='true')} style={{ width:'100%' }} disabled={isPend}><option value="true">Active</option><option value="false">Inactive</option></Select>
+                    <Select label="Verified" value={String(sel.is_verified)} onChange={e=>update('is_verified',e.target.value==='true')} style={{ width:'100%' }} disabled={isPend}><option value="true">Verified</option><option value="false">Unverified</option></Select>
                   </div>
-                  <p className="text-[10px] text-[#484f58] mt-2 italic">Changes save immediately on selection.</p>
+                  <p style={{ fontSize:10, color:'var(--s-dim)', marginTop:6 }}>Changes save immediately on selection.</p>
                 </Section>
               </DetailBody>
             </>
           )
         }
       />
-
-      {/* Register / Onboard modal */}
-      {showRegister && (
-        <Modal title="Onboard New User" onClose={() => setShowRegister(false)}>
-          <p className="text-[11px] text-[#8b949e] mb-4">
-            Creating a <strong className="text-[#e6edf3]">client</strong> account generates a unique user ID. Share the email and password with them so they can log in to the client portal.
-          </p>
-          {error && <Alert type="error" message={error} />}
-          <div className="space-y-3">
-            <div><SectionLabel>Full Name *</SectionLabel><Input className="w-full" value={rf.full_name} onChange={e => setRf({ ...rf, full_name: e.target.value })} /></div>
-            <div><SectionLabel>Email *</SectionLabel><Input className="w-full" type="email" value={rf.email} onChange={e => setRf({ ...rf, email: e.target.value })} /></div>
-            <div><SectionLabel>Phone</SectionLabel><Input className="w-full" type="tel" value={rf.phone} onChange={e => setRf({ ...rf, phone: e.target.value })} /></div>
-            <div><SectionLabel>Temporary Password *</SectionLabel><Input className="w-full" type="password" placeholder="Min 8 chars, 1 number, 1 special" value={rf.password} onChange={e => setRf({ ...rf, password: e.target.value })} /></div>
-            <div><SectionLabel>Role *</SectionLabel>
-              <Select value={rf.role} onChange={e => setRf({ ...rf, role: e.target.value })} className="w-full">
-                <option value="client">Client — gets client portal access</option>
-                <option value="employee">Employee — gets console access</option>
-                <option value="admin">Admin — full access</option>
-              </Select>
-            </div>
+      {showReg&&(
+        <Modal title="Register New User" sub="Client accounts get access to the client portal" onClose={()=>setShowReg(false)}>
+          {err&&<Alert type="error" message={err}/>}
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <Input label="Full Name *" value={rf.full_name} onChange={e=>setRf({...rf,full_name:e.target.value})}/>
+            <Input label="Email *" type="email" value={rf.email} onChange={e=>setRf({...rf,email:e.target.value})}/>
+            <Input label="Phone" type="tel" value={rf.phone} onChange={e=>setRf({...rf,phone:e.target.value})}/>
+            <Input label="Password *" type="password" placeholder="Min 8 chars" value={rf.password} onChange={e=>setRf({...rf,password:e.target.value})}/>
+            <Select label="Role" value={rf.role} onChange={e=>setRf({...rf,role:e.target.value})} style={{ width:'100%' }}>
+              <option value="client">Client — portal access</option>
+              <option value="employee">Employee — console access</option>
+              <option value="admin">Admin — full access</option>
+            </Select>
           </div>
-          <div className="flex gap-2 mt-5">
-            <Btn variant="primary" onClick={handleRegister} loading={isPending} className="flex-1 justify-center">
-              <UserPlus size={13} /> Create Account
-            </Btn>
-            <Btn variant="ghost" onClick={() => setShowRegister(false)}>Cancel</Btn>
-          </div>
+          <div style={{ display:'flex', gap:8, marginTop:16 }}><Button variant="primary" onClick={doReg} loading={isPend} style={{ flex:1, justifyContent:'center' }}>Create Account</Button><Button variant="ghost" onClick={()=>setShowReg(false)}>Cancel</Button></div>
         </Modal>
       )}
     </>

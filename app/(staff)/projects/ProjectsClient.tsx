@@ -1,233 +1,143 @@
 'use client';
-
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import type { Project, User, Paginated, ProjectStatus } from '@/types';
 import { PROJECT_TRANSITIONS } from '@/types';
-import { Badge, PriBadge, Btn, Select, Textarea, Modal, Alert, SectionLabel, Input } from '@/components/ui';
+import { Badge, Button, Select, Alert, Input, Textarea, Modal, EmptyState } from '@/components/ui';
 import { PageShell, ListHeader, EmptyDetail, DetailHeader, DetailBody, Section } from '@/components/modules/PageShell';
-import { relTime, fullDate, money } from '@/lib/utils';
+import { relTime, money, shortDate, fullDate } from '@/lib/utils';
 import { patchProjectAction, deleteProjectAction, createProjectAction } from '@/app/actions';
-import { FolderKanban, Trash2, Plus, ArrowRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
-const PRJ_STATUSES: ProjectStatus[] = ['DRAFT','PLANNING','ONBOARDING','IN_PROGRESS','ON_HOLD','REVIEW','COMPLETED','CANCELLED'];
-const PRIORITIES = ['LOW','MEDIUM','HIGH','URGENT'] as const;
+const STATUS_BAR: Record<string,string> = { DRAFT:'#484F58', PLANNING:'#388bfd', ONBOARDING:'#a371f7', IN_PROGRESS:'#F0883E', ON_HOLD:'#e08040', REVIEW:'#26d9b7', COMPLETED:'#3fb950', CANCELLED:'#f85149' };
+const PRIS = ['LOW','MEDIUM','HIGH','URGENT'] as const;
 
-const STATUS_BAR: Record<string, string> = {
-  DRAFT:       'bg-[#484f58]',
-  PLANNING:    'bg-[#388bfd]',
-  ONBOARDING:  'bg-[#a371f7]',
-  IN_PROGRESS: 'bg-[#f0883e]',
-  ON_HOLD:     'bg-[#a371f7]',
-  REVIEW:      'bg-[#26d9b7]',
-  COMPLETED:   'bg-[#3fb950]',
-  CANCELLED:   'bg-[#f85149]',
-};
-
-export function ProjectsClient({
-  projects,
-  employees,
-  currentUser,
-}: {
-  projects: Paginated<Project>;
-  employees: User[];
-  currentUser: User;
-}) {
+export function ProjectsClient({ projects, employees, currentUser }: { projects: Paginated<Project>; employees: User[]; currentUser: User }) {
   const router = useRouter();
-  const [selected, setSelected]   = useState<Project | null>(null);
-  const [isPending, startTransition] = useTransition();
-  const [error, setError]         = useState('');
-  const [success, setSuccess]     = useState('');
-  const [showCreate, setShowCreate] = useState(false);
+  const [sel, setSel]       = useState<Project|null>(null);
+  const [isPend, startTrans]= useTransition();
+  const [err, setErr]       = useState('');
+  const [ok,  setOk]        = useState('');
+  const [sfStatus, setSfStatus]= useState('');
+  const [showCreate, setShowCreate]= useState(false);
+  const [cf, setCf] = useState({ title:'', description:'', client_id:'', priority:'HIGH', budget:'', start_date:'', end_date:'' });
+  const isEmp = currentUser.role !== 'client';
+  const isAdmin = currentUser.role === 'admin';
+  const notify = (m:string,t:'ok'|'err') => { t==='ok'?(setOk(m),setErr('')):(setErr(m),setOk('')); setTimeout(()=>{setOk('');setErr('');},5000); };
 
-  // Create form
-  const [cf, setCf] = useState({ title: '', description: '', client_id: '', priority: 'HIGH', budget: '', start_date: '', end_date: '' });
-
-  const isAdmin    = currentUser.role === 'admin';
-  const isEmployee = currentUser.role !== 'client';
-
-  function notify(msg: string, type: 'ok' | 'err') {
-    type === 'ok' ? (setSuccess(msg), setError('')) : (setError(msg), setSuccess(''));
-    setTimeout(() => { setSuccess(''); setError(''); }, 4000);
+  async function moveTo(s: ProjectStatus) {
+    if (!sel) return;
+    startTrans(async () => { const r = await patchProjectAction(sel.id,{status:s}); if(r.ok){setSel(r.data as Project);notify(`→ ${s}`,'ok');router.refresh();}else notify(r.error,'err'); });
+  }
+  async function doDelete() {
+    if (!sel||!confirm('Delete project?')) return;
+    startTrans(async () => { const r = await deleteProjectAction(sel.id); if(r.ok){setSel(null);notify('Deleted.','ok');router.refresh();}else notify(r.error,'err'); });
+  }
+  async function doCreate() {
+    if (!cf.title||!cf.client_id) return setErr('Title and Client ID required.');
+    const p: Record<string,unknown> = { title:cf.title, client_id:cf.client_id, priority:cf.priority };
+    if (cf.description) p.description=cf.description; if (cf.budget) p.budget=parseFloat(cf.budget);
+    if (cf.start_date) p.start_date=cf.start_date; if (cf.end_date) p.end_date=cf.end_date;
+    startTrans(async () => { const r = await createProjectAction(p); if(r.ok){setShowCreate(false);notify('Created!','ok');router.refresh();}else notify(r.error,'err'); });
   }
 
-  async function handleStatusChange(newStatus: ProjectStatus) {
-    if (!selected) return;
-    startTransition(async () => {
-      const r = await patchProjectAction(selected.id, { status: newStatus });
-      if (r.ok) {
-        setSelected(r.data as Project);
-        notify(`Status → ${newStatus}`, 'ok');
-        router.refresh();
-      } else notify(r.error, 'err');
-    });
-  }
-
-  async function handleDelete() {
-    if (!selected || !confirm('Delete this project?')) return;
-    startTransition(async () => {
-      const r = await deleteProjectAction(selected.id);
-      if (r.ok) { setSelected(null); notify('Deleted.', 'ok'); router.refresh(); }
-      else notify(r.error, 'err');
-    });
-  }
-
-  async function handleCreate() {
-    if (!cf.title || !cf.client_id) return setError('Title and Client ID are required.');
-    startTransition(async () => {
-      const payload: Record<string, unknown> = { title: cf.title, client_id: cf.client_id, priority: cf.priority };
-      if (cf.description) payload.description = cf.description;
-      if (cf.budget)      payload.budget = parseFloat(cf.budget);
-      if (cf.start_date)  payload.start_date = cf.start_date;
-      if (cf.end_date)    payload.end_date = cf.end_date;
-      const r = await createProjectAction(payload);
-      if (r.ok) { setShowCreate(false); notify('Project created.', 'ok'); router.refresh(); }
-      else notify(r.error, 'err');
-    });
-  }
-
-  // Allowed next states from current
-  const allowedNext = selected ? PROJECT_TRANSITIONS[selected.status] ?? [] : [];
-
-  const ONBOARDING_NOTE = selected?.status === 'ONBOARDING'
-    ? 'Transition to IN_PROGRESS requires approved onboarding — enforced by backend.'
-    : null;
+  const filtered = projects.items.filter(p => !sfStatus||p.status===sfStatus);
+  const nextStates = sel ? PROJECT_TRANSITIONS[sel.status] ?? [] : [];
 
   return (
     <>
       <PageShell
-        listSlot={
+        list={
           <>
-            <ListHeader
-              title="Projects"
-              count={projects.total}
-              actions={
-                isEmployee && (
-                  <Btn variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => setShowCreate(true)}>
-                    <Plus size={12} /> New
-                  </Btn>
-                )
-              }
+            <ListHeader title="Projects" count={projects.total}
+              filters={<Select value={sfStatus} onChange={e=>setSfStatus(e.target.value)} style={{ width:'auto', height:28, padding:'0 8px', fontSize:11 }}>
+                <option value="">All Status</option>
+                {['DRAFT','PLANNING','ONBOARDING','IN_PROGRESS','ON_HOLD','REVIEW','COMPLETED','CANCELLED'].map(s=><option key={s} value={s}>{s.replace('_',' ')}</option>)}
+              </Select>}
+              actions={isEmp && <button onClick={()=>setShowCreate(true)} style={{ width:28, height:28, borderRadius:7, border:'1px solid rgba(255,255,255,.1)', background:'transparent', cursor:'pointer', color:'#F0883E', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>}
             />
-            <div className="flex-1 overflow-y-auto">
-              {projects.items.length === 0 && (
-                <div className="flex items-center justify-center py-12 text-[#484f58] text-sm">No projects</div>
-              )}
-              {projects.items.map(p => (
-                <button key={p.id} onClick={() => setSelected(p)}
-                  className={`w-full text-left flex border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors ${selected?.id === p.id ? 'bg-white/[0.05]' : ''}`}>
-                  <div className={`w-[3px] flex-shrink-0 ${STATUS_BAR[p.status] ?? 'bg-[#484f58]'}`} />
-                  <div className="flex-1 px-3 py-2.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[13px] font-medium text-[#e6edf3] truncate">{p.title}</span>
-                      <span className="text-[10px] font-mono text-[#484f58] flex-shrink-0">{relTime(p.created_at)}</span>
+            <div style={{ flex:1, overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.06) transparent' }}>
+              {filtered.length===0&&<EmptyState title="No projects found" />}
+              {filtered.map((p,i) => {
+                const active = sel?.id===p.id;
+                return (
+                  <motion.button key={p.id} initial={{opacity:0,x:-6}} animate={{opacity:1,x:0}} transition={{delay:i*0.02}}
+                    onClick={()=>setSel(p)} style={{ width:'100%', textAlign:'left', display:'flex', border:'none', borderBottom:'1px solid rgba(255,255,255,0.04)', background:active?'rgba(255,255,255,0.04)':'transparent', cursor:'pointer', padding:0 }}>
+                    <div style={{ width:3, flexShrink:0, background:active?STATUS_BAR[p.status]:'transparent', transition:'background 0.2s' }}/>
+                    <div style={{ flex:1, padding:'11px 14px', minWidth:0 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginBottom:3 }}>
+                        <span style={{ fontSize:13, fontWeight:active?500:400, color:active?'var(--s-text)':'var(--s-sub)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.title}</span>
+                        <span style={{ fontSize:10, color:'var(--s-dim)', fontFamily:'var(--font-mono)', flexShrink:0 }}>{relTime(p.created_at)}</span>
+                      </div>
+                      {p.budget&&<div style={{ fontSize:11, color:'var(--s-dim)', marginBottom:4, fontFamily:'var(--font-mono)' }}>{money(p.budget)}</div>}
+                      <div style={{ display:'flex', gap:5 }}><Badge status={p.priority}/><Badge status={p.status}/></div>
                     </div>
-                    {p.budget && <div className="text-[11px] text-[#484f58] mt-0.5">{money(p.budget)}</div>}
-                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <PriBadge priority={p.priority} />
-                      <Badge status={p.status} />
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </motion.button>
+                );
+              })}
             </div>
           </>
         }
-        detailSlot={
-          !selected ? <EmptyDetail text="Select a project" /> : (
+        detail={
+          !sel ? <EmptyDetail text="Select a project" /> : (
             <>
               <DetailHeader
-                title={selected.title}
-                sub={`Client: ${selected.client_id}`}
-                badges={<><PriBadge priority={selected.priority} /><Badge status={selected.status} /></>}
+                title={sel.title} sub={`Client: ${sel.client_id.slice(0,20)}…`}
+                badges={<><Badge status={sel.priority}/><Badge status={sel.status}/></>}
                 actions={
                   <>
-                    <Link href={`/milestones?project=${selected.id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-white/14 bg-[#1c2128] text-[12px] font-medium text-[#8b949e] hover:text-[#e6edf3] transition-colors">
-                      <ExternalLink size={12} /> Milestones
-                    </Link>
-                    <Link href={`/onboarding?project=${selected.id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-white/14 bg-[#1c2128] text-[12px] font-medium text-[#8b949e] hover:text-[#e6edf3] transition-colors">
-                      Onboarding
-                    </Link>
-                    {isAdmin && (
-                      <Btn variant="danger" onClick={handleDelete} disabled={isPending}>
-                        <Trash2 size={12} />
-                      </Btn>
-                    )}
+                    <Link href={`/milestones?project=${sel.id}`} style={{ display:'inline-flex', alignItems:'center', padding:'0 10px', height:30, borderRadius:7, border:'1px solid var(--s-border)', background:'var(--s-raised)', color:'var(--s-sub)', fontSize:12, textDecoration:'none', fontWeight:500 }}>Milestones</Link>
+                    <Link href={`/onboarding?project=${sel.id}`} style={{ display:'inline-flex', alignItems:'center', padding:'0 10px', height:30, borderRadius:7, border:'1px solid var(--s-border)', background:'var(--s-raised)', color:'var(--s-sub)', fontSize:12, textDecoration:'none', fontWeight:500 }}>Onboarding</Link>
+                    {isAdmin&&<Button variant="danger" size="sm" onClick={doDelete} disabled={isPend}>Delete</Button>}
                   </>
                 }
               />
               <DetailBody>
-                {(error || success) && <Alert type={error ? 'error' : 'success'} message={error || success} />}
-
-                {selected.description && (
-                  <Section label="Description">
-                    <p className="text-sm text-[#8b949e] leading-relaxed">{selected.description}</p>
-                  </Section>
-                )}
-
+                {(err||ok)&&<Alert type={err?'error':'success'} message={err||ok}/>}
+                {sel.description&&<Section label="Description"><p style={{ fontSize:13, lineHeight:1.65, color:'var(--s-sub)' }}>{sel.description}</p></Section>}
                 <Section label="Details">
-                  <table className="w-full"><tbody>
-                    <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e] w-28">Client ID</td><td className="py-1.5 text-[12px] font-mono text-[#e6edf3]">{selected.client_id}</td></tr>
-                    {selected.budget && <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">Budget</td><td className="py-1.5 text-[12px] text-[#e6edf3]">{money(selected.budget)}</td></tr>}
-                    {selected.start_date && <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">Start</td><td className="py-1.5 text-[12px] text-[#e6edf3]">{selected.start_date}</td></tr>}
-                    {selected.end_date && <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">End</td><td className="py-1.5 text-[12px] text-[#e6edf3]">{selected.end_date}</td></tr>}
-                    <tr className="border-b border-white/[0.04]"><td className="py-1.5 pr-4 text-[11px] text-[#8b949e]">Created</td><td className="py-1.5 text-[12px] text-[#e6edf3]">{fullDate(selected.created_at)}</td></tr>
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}><tbody>
+                    {[['Budget',sel.budget?money(sel.budget):'—'],['Start',shortDate(sel.start_date)],['End',shortDate(sel.end_date)],['Created',fullDate(sel.created_at)]].map(([l,v])=>(
+                      <tr key={l} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                        <td style={{ padding:'7px 12px 7px 0', fontSize:11, color:'var(--s-dim)', width:80 }}>{l}</td>
+                        <td style={{ padding:'7px 0', fontSize:12, color:'var(--s-text)', fontFamily:'var(--font-mono)' }}>{v}</td>
+                      </tr>
+                    ))}
                   </tbody></table>
                 </Section>
-
-                {/* Status transition enforcer — only shows allowed next states */}
-                {isEmployee && allowedNext.length > 0 && (
+                {isEmp && nextStates.length > 0 && (
                   <Section label="Move to Next Stage">
-                    {ONBOARDING_NOTE && (
-                      <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 mb-3">
-                        ⚠ {ONBOARDING_NOTE}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap gap-2">
-                      {allowedNext.map(next => (
-                        <Btn key={next} variant={next === 'CANCELLED' ? 'danger' : 'secondary'}
-                          onClick={() => handleStatusChange(next)} disabled={isPending}>
-                          <ArrowRight size={12} /> {next.replace('_', ' ')}
-                        </Btn>
-                      ))}
+                    {sel.status==='ONBOARDING'&&<p style={{ fontSize:11, color:'#F0883E', background:'rgba(240,136,62,.08)', border:'1px solid rgba(240,136,62,.2)', borderRadius:7, padding:'8px 12px', marginBottom:10 }}>⚠ IN_PROGRESS requires approved onboarding (backend enforced).</p>}
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                      {nextStates.map(n=><Button key={n} variant={n==='CANCELLED'?'danger':'secondary'} size="sm" onClick={()=>moveTo(n)} disabled={isPend}>→ {n.replace('_',' ')}</Button>)}
                     </div>
                   </Section>
-                )}
-
-                {['COMPLETED','CANCELLED'].includes(selected.status) && (
-                  <p className="text-[11px] text-[#484f58] italic">This project is in a terminal state and cannot be changed.</p>
                 )}
               </DetailBody>
             </>
           )
         }
       />
-
-      {/* Create project modal */}
-      {showCreate && (
-        <Modal title="Create New Project" onClose={() => setShowCreate(false)}>
-          {error && <Alert type="error" message={error} />}
-          <div className="space-y-3">
-            <div><SectionLabel>Title *</SectionLabel><Input className="w-full" value={cf.title} onChange={e => setCf({ ...cf, title: e.target.value })} /></div>
-            <div><SectionLabel>Client ID *</SectionLabel><Input className="w-full" placeholder="Client UUID" value={cf.client_id} onChange={e => setCf({ ...cf, client_id: e.target.value })} /></div>
-            <div><SectionLabel>Description</SectionLabel><Textarea className="w-full" rows={2} value={cf.description} onChange={e => setCf({ ...cf, description: e.target.value })} /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><SectionLabel>Priority</SectionLabel>
-                <Select value={cf.priority} onChange={e => setCf({ ...cf, priority: e.target.value })} className="w-full">
-                  {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                </Select>
-              </div>
-              <div><SectionLabel>Budget</SectionLabel><Input className="w-full" type="number" placeholder="0" value={cf.budget} onChange={e => setCf({ ...cf, budget: e.target.value })} /></div>
+      {showCreate&&(
+        <Modal title="Create New Project" onClose={()=>setShowCreate(false)}>
+          {err&&<Alert type="error" message={err}/>}
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <Input label="Title *" value={cf.title} onChange={e=>setCf({...cf,title:e.target.value})}/>
+            <Input label="Client ID *" placeholder="UUID" value={cf.client_id} onChange={e=>setCf({...cf,client_id:e.target.value})}/>
+            <Textarea label="Description" rows={2} value={cf.description} onChange={e=>setCf({...cf,description:e.target.value})}/>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <Select label="Priority" value={cf.priority} onChange={e=>setCf({...cf,priority:e.target.value})} style={{ width:'100%' }}>{PRIS.map(p=><option key={p} value={p}>{p}</option>)}</Select>
+              <Input label="Budget" type="number" value={cf.budget} onChange={e=>setCf({...cf,budget:e.target.value})}/>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div><SectionLabel>Start Date</SectionLabel><Input className="w-full" type="date" value={cf.start_date} onChange={e => setCf({ ...cf, start_date: e.target.value })} /></div>
-              <div><SectionLabel>End Date</SectionLabel><Input className="w-full" type="date" value={cf.end_date} onChange={e => setCf({ ...cf, end_date: e.target.value })} /></div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <Input label="Start Date" type="date" value={cf.start_date} onChange={e=>setCf({...cf,start_date:e.target.value})}/>
+              <Input label="End Date" type="date" value={cf.end_date} onChange={e=>setCf({...cf,end_date:e.target.value})}/>
             </div>
           </div>
-          <div className="flex gap-2 mt-5">
-            <Btn variant="primary" onClick={handleCreate} loading={isPending} className="flex-1 justify-center">Create Project</Btn>
-            <Btn variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Btn>
+          <div style={{ display:'flex', gap:8, marginTop:16 }}>
+            <Button variant="primary" onClick={doCreate} loading={isPend} style={{ flex:1, justifyContent:'center' }}>Create Project</Button>
+            <Button variant="ghost" onClick={()=>setShowCreate(false)}>Cancel</Button>
           </div>
         </Modal>
       )}

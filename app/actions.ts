@@ -4,33 +4,22 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { SESSION_COOKIE } from '@/lib/config';
 import { buildSession, getToken, getSession } from '@/lib/auth';
-import {
-  authApi, usersApi, inquiriesApi, projectsApi, onboardingApi,
-  milestonesApi, ticketsApi, invoicesApi, paymentsApi,
-  ApiError,
-} from '@/lib/api';
+import { authApi, usersApi, inquiriesApi, projectsApi, onboardingApi, milestonesApi, ticketsApi, invoicesApi, paymentsApi, ApiError } from '@/lib/api';
 import type { ConvertInquiryPayload, RecordPaymentPayload } from '@/types';
 
 type AR<T = unknown> = Promise<{ ok: true; data: T } | { ok: false; error: string }>;
+const ok  = <T>(d: T) => ({ ok: true as const, data: d });
+const fail = (e: unknown) => ({ ok: false as const, error: e instanceof ApiError ? e.message : String(e) });
 
-function ok<T>(data: T) { return { ok: true as const, data }; }
-function fail(e: unknown) {
-  const msg = e instanceof ApiError ? e.message : String(e);
-  return { ok: false as const, error: msg };
-}
-
-// ─── AUTH ─────────────────────────────────────────────────────────────────────
+// AUTH
 export async function loginAction(email: string, password: string): AR<{ role: string }> {
   try {
     const tokens = await authApi.login(email, password);
     const user   = await authApi.me(tokens.access_token);
     const store  = await cookies();
     store.set(SESSION_COOKIE, buildSession(tokens.access_token, tokens.refresh_token, user), {
-      httpOnly: true,
-      secure:   process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge:   8 * 60 * 60,
-      path:     '/',
+      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', maxAge: 8 * 60 * 60, path: '/',
     });
     return ok({ role: user.role });
   } catch (e) { return fail(e); }
@@ -50,14 +39,11 @@ export async function changePasswordAction(current: string, next: string): AR {
   } catch (e) { return fail(e); }
 }
 
-// ─── USERS ────────────────────────────────────────────────────────────────────
-export async function registerUserAction(payload: {
-  email: string; password: string; full_name: string; phone?: string; role: string;
-}): AR {
+// USERS
+export async function registerUserAction(p: { email: string; password: string; full_name: string; phone?: string; role: string }): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
-    const user = await authApi.register(token, payload);
-    return ok(user);
+    return ok(await authApi.register(token, p));
   } catch (e) { return fail(e); }
 }
 
@@ -75,7 +61,7 @@ export async function updateMeAction(payload: { full_name?: string; phone?: stri
   } catch (e) { return fail(e); }
 }
 
-// ─── INQUIRIES ────────────────────────────────────────────────────────────────
+// INQUIRIES
 export async function patchInquiryAction(id: string, payload: Record<string, unknown>): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
@@ -98,7 +84,7 @@ export async function convertInquiryAction(id: string, payload: ConvertInquiryPa
   } catch (e) { return fail(e); }
 }
 
-// ─── PROJECTS ─────────────────────────────────────────────────────────────────
+// PROJECTS
 export async function createProjectAction(payload: Record<string, unknown>): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
@@ -121,7 +107,7 @@ export async function deleteProjectAction(id: string): AR {
   } catch (e) { return fail(e); }
 }
 
-// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+// ONBOARDING
 export async function submitOnboardingAction(projectId: string, payload: Record<string, unknown>): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
@@ -129,16 +115,14 @@ export async function submitOnboardingAction(projectId: string, payload: Record<
   } catch (e) { return fail(e); }
 }
 
-export async function reviewOnboardingAction(
-  projectId: string, status: 'APPROVED' | 'REJECTED', rejection_reason?: string
-): AR {
+export async function reviewOnboardingAction(projectId: string, status: 'APPROVED' | 'REJECTED', rejection_reason?: string): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
     return ok(await onboardingApi.review(token, projectId, { status, rejection_reason }));
   } catch (e) { return fail(e); }
 }
 
-// ─── MILESTONES ───────────────────────────────────────────────────────────────
+// MILESTONES
 export async function createMilestoneAction(projectId: string, payload: Record<string, unknown>): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
@@ -168,7 +152,7 @@ export async function deleteMilestoneAction(projectId: string, msId: string): AR
   } catch (e) { return fail(e); }
 }
 
-// ─── TICKETS ──────────────────────────────────────────────────────────────────
+// TICKETS
 export async function createTicketAction(payload: Record<string, unknown>): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
@@ -198,7 +182,7 @@ export async function deleteTicketAction(id: string): AR {
   } catch (e) { return fail(e); }
 }
 
-// ─── INVOICES ─────────────────────────────────────────────────────────────────
+// INVOICES
 export async function createInvoiceAction(payload: Record<string, unknown>): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');
@@ -228,7 +212,7 @@ export async function getInvoiceDownloadAction(id: string): AR {
   } catch (e) { return fail(e); }
 }
 
-// ─── PAYMENTS ─────────────────────────────────────────────────────────────────
+// PAYMENTS
 export async function recordPaymentAction(payload: RecordPaymentPayload): AR {
   try {
     const token = await getToken(); if (!token) return fail('Not authenticated');

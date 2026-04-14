@@ -1,10 +1,8 @@
 import { getUser } from '@/lib/auth';
-import { StaffProfileClient } from './StaffProfileClient';
-
+import { ProfileClient } from './ProfileClient';
 export const dynamic = 'force-dynamic';
-
-export default async function StaffProfilePage() {
+export default async function ProfilePage() {
   const user = await getUser();
   if (!user) return null;
-  return <StaffProfileClient currentUser={user} />;
+  return <ProfileClient currentUser={user} />;
 }

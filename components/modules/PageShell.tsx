@@ -1,93 +1,83 @@
 'use client';
+
 import { type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
-export function PageShell({
-  listSlot,
-  detailSlot,
-}: {
-  listSlot: ReactNode;
-  detailSlot: ReactNode;
-}) {
+export function PageShell({ list, detail }: { list: ReactNode; detail: ReactNode }) {
   return (
-    <div className="flex flex-1 overflow-hidden h-full">
-      {/* List pane */}
-      <div className="w-80 flex-shrink-0 border-r border-white/[0.08] flex flex-col overflow-hidden bg-[#161b22]">
-        {listSlot}
+    <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col overflow-hidden" style={{ width: 288, flexShrink: 0, borderRight: '1px solid var(--s-border)', background: 'var(--s-surface)' }}>
+        {list}
       </div>
-      {/* Detail pane */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#0d1117]">
-        {detailSlot}
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0" style={{ background: 'var(--s-bg)' }}>
+        {detail}
       </div>
     </div>
   );
 }
 
-export function ListHeader({
-  title,
-  count,
-  actions,
-  filters,
-}: {
-  title: string;
-  count?: number;
-  actions?: ReactNode;
-  filters?: ReactNode;
+export function ListHeader({ title, count, actions, filters }: {
+  title: string; count?: number; actions?: ReactNode; filters?: ReactNode;
 }) {
   return (
-    <div className="flex-shrink-0 border-b border-white/[0.04]">
-      <div className="flex items-center gap-2 px-3 py-2.5">
-        <span className="text-[10px] uppercase tracking-widest font-semibold text-[#484f58]">{title}</span>
-        {count !== undefined && (
-          <span className="ml-1 text-[10px] font-mono text-[#484f58]">{count}</span>
-        )}
-        {actions && <div className="ml-auto flex items-center gap-1.5">{actions}</div>}
+    <div style={{ flexShrink: 0, borderBottom: '1px solid var(--s-border)' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'12px 14px 10px' }}>
+        <span style={{ fontSize:11, fontWeight:700, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--s-dim)' }}>{title}</span>
+        {count !== undefined && <span style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--s-dim)', background:'rgba(255,255,255,0.05)', padding:'1px 6px', borderRadius:4 }}>{count}</span>}
+        {actions && <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>{actions}</div>}
       </div>
-      {filters && <div className="px-3 pb-2.5 flex flex-wrap gap-1.5">{filters}</div>}
+      {filters && <div style={{ padding:'0 10px 10px', display:'flex', gap:6, flexWrap:'wrap' }}>{filters}</div>}
     </div>
   );
 }
 
-export function EmptyDetail({ text = 'Select an item to view details' }: { text?: string }) {
+export function EmptyDetail({ text = 'Select an item' }: { text?: string }) {
   return (
-    <div className="flex-1 flex items-center justify-center text-[#484f58] text-sm">{text}</div>
+    <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10 }}>
+      <div style={{ width:32, height:1, background:'rgba(255,255,255,0.06)' }} />
+      <div style={{ fontSize:13, color:'var(--s-dim)' }}>{text}</div>
+      <div style={{ width:32, height:1, background:'rgba(255,255,255,0.06)' }} />
+    </div>
   );
 }
 
-export function DetailHeader({
-  title,
-  sub,
-  badges,
-  actions,
-}: {
-  title: string;
-  sub?: string;
-  badges?: ReactNode;
-  actions?: ReactNode;
+export function DetailHeader({ title, sub, badges, actions }: {
+  title: string; sub?: string; badges?: ReactNode; actions?: ReactNode;
 }) {
   return (
-    <div className="flex-shrink-0 px-6 py-5 border-b border-white/[0.08]">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base font-semibold text-[#e6edf3] truncate">{title}</h2>
-          {sub && <p className="text-xs text-[#8b949e] mt-0.5 truncate">{sub}</p>}
-          {badges && <div className="flex items-center gap-1.5 mt-2 flex-wrap">{badges}</div>}
+    <motion.div
+      initial={{ opacity:0, y:-4 }}
+      animate={{ opacity:1, y:0 }}
+      transition={{ duration:0.25 }}
+      style={{ flexShrink:0, padding:'18px 22px', borderBottom:'1px solid var(--s-border)' }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:14 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <h2 style={{ fontSize:15, fontWeight:600, color:'var(--s-text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:3 }}>{title}</h2>
+          {sub && <p style={{ fontSize:12, color:'var(--s-sub)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginBottom:6 }}>{sub}</p>}
+          {badges && <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>{badges}</div>}
         </div>
-        {actions && <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">{actions}</div>}
+        {actions && <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0, flexWrap:'wrap' }}>{actions}</div>}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 export function DetailBody({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">{children}</div>
+    <motion.div
+      initial={{ opacity:0 }}
+      animate={{ opacity:1 }}
+      transition={{ duration:0.3, delay:0.05 }}
+      style={{ flex:1, overflowY:'auto', padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,0.06) transparent' }}>
+      {children}
+    </motion.div>
   );
 }
 
 export function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-widest font-semibold text-[#484f58] mb-3">{label}</div>
+      <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--s-dim)', marginBottom:8 }}>{label}</div>
       {children}
     </div>
   );

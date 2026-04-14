@@ -1,16 +1,8 @@
-// Server component — safely awaits searchParams (Next.js 15 requirement)
 import { LoginForm } from './LoginForm';
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const params = await searchParams;
-  const errorMsg =
-    params.error === 'client_role'
-      ? 'Access denied. Please use the client portal.'
-      : '';
+export const metadata = { title: 'Sign In | ARC IT Solutions' };
 
-  return <LoginForm initialError={errorMsg} />;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
+  return <LoginForm initialError={error === 'session_expired' ? 'Your session has expired. Please sign in again.' : ''} />;
 }

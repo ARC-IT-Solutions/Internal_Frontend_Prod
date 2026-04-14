@@ -3,26 +3,22 @@ import { SESSION_COOKIE } from './config';
 import type { Session, User } from '@/types';
 
 export async function getSession(): Promise<Session | null> {
-  const store = await cookies();
-  const raw = store.get(SESSION_COOKIE)?.value;
-  if (!raw) return null;
   try {
+    const store = await cookies();
+    const raw   = store.get(SESSION_COOKIE)?.value;
+    if (!raw) return null;
     const s: Session = JSON.parse(raw);
     if (Date.now() > s.expires) return null;
     return s;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 export async function getUser(): Promise<User | null> {
-  const s = await getSession();
-  return s?.user ?? null;
+  return (await getSession())?.user ?? null;
 }
 
 export async function getToken(): Promise<string | null> {
-  const s = await getSession();
-  return s?.access_token ?? null;
+  return (await getSession())?.access_token ?? null;
 }
 
 export function buildSession(
