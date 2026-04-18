@@ -202,3 +202,8 @@ export function InfoRow({ label, children }: { label:string; children:ReactNode 
     </tr>
   );
 }
+
+// ── Aliases for backward compatibility ─────────────────────────────────────────
+// These ensure older extracted files that reference 'Btn' still compile.
+export const Btn = Button;
+export { SectionLabel as SLabel };  // SectionLabel already exported above

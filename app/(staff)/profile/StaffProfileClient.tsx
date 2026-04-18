@@ -1,145 +1,101 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { motion } from 'framer-motion';
 import type { User } from '@/types';
-import { Btn, Input, Alert, SectionLabel } from '@/components/ui';
+import { Button, Input, Alert } from '@/components/ui';
 import { updateMeAction, changePasswordAction } from '@/app/actions';
-import { Save, KeyRound, UserCircle2 } from 'lucide-react';
+import { initials } from '@/lib/utils';
 
-function initials(name: string) {
-  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-}
-
-const ROLE_BG: Record<string, string> = {
-  admin:    'bg-[#854F0B] text-[#f0883e]',
-  employee: 'bg-[#185FA5] text-white',
+const RC: Record<string,{bg:string;color:string}> = {
+  admin:    { bg:'rgba(240,136,62,.2)',  color:'#F0883E' },
+  employee: { bg:'rgba(56,139,253,.2)', color:'#388bfd' },
 };
 
 export function StaffProfileClient({ currentUser }: { currentUser: User }) {
-  const [isPending, startTransition] = useTransition();
-  const [profileMsg, setProfileMsg]  = useState({ type: '', text: '' });
-  const [pwMsg,      setPwMsg]       = useState({ type: '', text: '' });
+  const [isPend, startTrans] = useTransition();
+  const [pm,  setPm]  = useState({ type:'', text:'' });
+  const [pwm, setPwm] = useState({ type:'', text:'' });
+  const [name,  setName]  = useState(currentUser.full_name);
+  const [phone, setPhone] = useState(currentUser.phone ?? '');
+  const [cur,   setCur]   = useState('');
+  const [nw,    setNw]    = useState('');
+  const [conf,  setConf]  = useState('');
 
-  const [name,   setName]   = useState(currentUser.full_name);
-  const [phone,  setPhone]  = useState(currentUser.phone ?? '');
-  const [curPw,  setCurPw]  = useState('');
-  const [newPw,  setNewPw]  = useState('');
-  const [confPw, setConfPw] = useState('');
-
-  async function saveProfile() {
-    if (!name.trim()) return setProfileMsg({ type: 'error', text: 'Name is required.' });
-    startTransition(async () => {
+  async function savePro() {
+    if (!name.trim()) return setPm({ type:'error', text:'Name required.' });
+    startTrans(async () => {
       const r = await updateMeAction({ full_name: name.trim(), phone: phone.trim() || undefined });
-      if (r.ok) setProfileMsg({ type: 'success', text: 'Profile updated.' });
-      else      setProfileMsg({ type: 'error',   text: r.error });
+      if (r.ok) setPm({ type:'success', text:'Profile updated.' });
+      else      setPm({ type:'error',   text: r.error });
     });
   }
 
-  async function changePassword() {
-    if (newPw !== confPw) return setPwMsg({ type: 'error', text: "New passwords don't match." });
-    if (newPw.length < 8) return setPwMsg({ type: 'error', text: 'Password must be at least 8 characters.' });
-    if (!curPw)           return setPwMsg({ type: 'error', text: 'Current password is required.' });
-    startTransition(async () => {
-      const r = await changePasswordAction(curPw, newPw);
-      if (r.ok) { setPwMsg({ type: 'success', text: 'Password changed successfully.' }); setCurPw(''); setNewPw(''); setConfPw(''); }
-      else        setPwMsg({ type: 'error', text: r.error });
+  async function changePw() {
+    if (!cur)          return setPwm({ type:'error', text:'Current password required.' });
+    if (nw !== conf)   return setPwm({ type:'error', text:"Passwords don't match." });
+    if (nw.length < 8) return setPwm({ type:'error', text:'Minimum 8 characters.' });
+    startTrans(async () => {
+      const r = await changePasswordAction(cur, nw);
+      if (r.ok) { setPwm({ type:'success', text:'Password changed.' }); setCur(''); setNw(''); setConf(''); }
+      else        setPwm({ type:'error', text: r.error });
     });
   }
+
+  const rc = RC[currentUser.role] ?? { bg:'rgba(255,255,255,.1)', color:'var(--s-sub)' };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 px-6 py-4 bg-[#161b22] border-b border-white/[0.08]">
-        <div className="flex items-center gap-3">
-          <UserCircle2 size={16} className="text-[#f0883e]" />
-          <div>
-            <h1 className="text-sm font-semibold text-[#e6edf3]">My Profile</h1>
-            <p className="text-[11px] text-[#484f58] mt-0.5">Manage your account details and password</p>
-          </div>
-        </div>
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden', background:'var(--s-bg)' }}>
+      <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)' }}>
+        <h1 style={{ fontSize:13, fontWeight:700, color:'var(--s-text)' }}>My Profile</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="max-w-lg mx-auto space-y-8">
+      <div style={{ flex:1, overflowY:'auto', padding:24 }}>
+        <div style={{ maxWidth:480, display:'flex', flexDirection:'column', gap:28 }}>
 
-          {/* Identity card */}
-          <div className="flex items-center gap-4 bg-[#161b22] border border-white/[0.08] rounded-xl px-5 py-4">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-[14px] font-semibold flex-shrink-0 ${ROLE_BG[currentUser.role] ?? 'bg-[#21262d] text-[#8b949e]'}`}>
+          <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
+            style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 20px', borderRadius:14, background:'var(--s-raised)', border:'1px solid var(--s-border)' }}>
+            <div style={{ width:48, height:48, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700, flexShrink:0, background:rc.bg, color:rc.color }}>
               {initials(currentUser.full_name)}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-[#e6edf3]">{currentUser.full_name}</div>
-              <div className="text-[12px] text-[#8b949e] mt-0.5">{currentUser.email}</div>
-              <div className="mt-1.5">
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-amber-400">
-                  {currentUser.role}
-                </span>
-              </div>
+            <div>
+              <div style={{ fontSize:15, fontWeight:600, color:'var(--s-text)', marginBottom:3 }}>{currentUser.full_name}</div>
+              <div style={{ fontSize:12, color:'var(--s-sub)', marginBottom:5 }}>{currentUser.email}</div>
+              <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', padding:'2px 8px', borderRadius:4, background:rc.bg, color:rc.color }}>
+                {currentUser.role}
+              </span>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Personal info */}
-          <div>
-            <h2 className="text-sm font-semibold text-[#e6edf3] mb-4 flex items-center gap-2">
-              <span className="w-1 h-4 rounded-full bg-[#f0883e] inline-block" />
+          <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.06 }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--s-dim)', marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:3, height:14, borderRadius:2, background:'#F0883E', display:'inline-block' }}/>
               Personal Information
-            </h2>
-
-            {profileMsg.text && <Alert type={profileMsg.type as 'error' | 'success'} message={profileMsg.text} />}
-
-            <div className="space-y-4">
-              <div>
-                <SectionLabel>Full Name</SectionLabel>
-                <Input className="w-full" value={name} onChange={e => setName(e.target.value)} />
-              </div>
-              <div>
-                <SectionLabel>Phone</SectionLabel>
-                <Input className="w-full" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 …" />
-              </div>
-              <div>
-                <SectionLabel>Email</SectionLabel>
-                <Input className="w-full" value={currentUser.email} disabled />
-                <p className="text-[11px] text-[#484f58] mt-1">Email cannot be changed here. Contact an admin if needed.</p>
-              </div>
             </div>
+            {pm.text && <Alert type={pm.type as 'error'|'success'} message={pm.text} />}
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <Input label="Full Name"    value={name}  onChange={e => setName(e.target.value)} />
+              <Input label="Phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+              <Input label="Email"        value={currentUser.email} disabled style={{ opacity:0.5 }} />
+            </div>
+            <Button variant="primary" onClick={savePro} loading={isPend} style={{ marginTop:12 }}>Save Changes</Button>
+          </motion.div>
 
-            <Btn variant="primary" onClick={saveProfile} loading={isPending} className="mt-4">
-              <Save size={13} /> Save Changes
-            </Btn>
-          </div>
+          <div style={{ height:1, background:'rgba(255,255,255,.06)' }} />
 
-          {/* Divider */}
-          <div className="border-t border-white/[0.06]" />
-
-          {/* Change password */}
-          <div>
-            <h2 className="text-sm font-semibold text-[#e6edf3] mb-4 flex items-center gap-2">
-              <span className="w-1 h-4 rounded-full bg-[#f0883e] inline-block" />
+          <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.12 }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--s-dim)', marginBottom:14, display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:3, height:14, borderRadius:2, background:'#F0883E', display:'inline-block' }}/>
               Change Password
-            </h2>
-
-            {pwMsg.text && <Alert type={pwMsg.type as 'error' | 'success'} message={pwMsg.text} />}
-
-            <div className="space-y-4">
-              <div>
-                <SectionLabel>Current Password</SectionLabel>
-                <Input className="w-full" type="password" value={curPw} onChange={e => setCurPw(e.target.value)} placeholder="Current password" />
-              </div>
-              <div>
-                <SectionLabel>New Password</SectionLabel>
-                <Input className="w-full" type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Minimum 8 characters" />
-              </div>
-              <div>
-                <SectionLabel>Confirm New Password</SectionLabel>
-                <Input className="w-full" type="password" value={confPw} onChange={e => setConfPw(e.target.value)} placeholder="Repeat new password" />
-              </div>
             </div>
-
-            <Btn variant="secondary" onClick={changePassword} loading={isPending} className="mt-4">
-              <KeyRound size={13} /> Update Password
-            </Btn>
-          </div>
-
+            {pwm.text && <Alert type={pwm.type as 'error'|'success'} message={pwm.text} />}
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <Input label="Current Password"      type="password" value={cur}  onChange={e => setCur(e.target.value)} />
+              <Input label="New Password"          type="password" value={nw}   onChange={e => setNw(e.target.value)}  placeholder="Min 8 chars" />
+              <Input label="Confirm New Password"  type="password" value={conf} onChange={e => setConf(e.target.value)} />
+            </div>
+            <Button variant="secondary" onClick={changePw} loading={isPend} style={{ marginTop:12 }}>Update Password</Button>
+          </motion.div>
         </div>
       </div>
     </div>
