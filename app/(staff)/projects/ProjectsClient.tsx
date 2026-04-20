@@ -90,6 +90,8 @@ export function ProjectsClient({
   return (
     <>
       <PageShell
+        hasDetail={!!sel}
+        detailTitle="projects list"
         list={
           <>
             <ListHeader

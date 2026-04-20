@@ -59,7 +59,7 @@ export function ClientOnboardingView({ projects }: { projects: Rich[] }) {
       <ArcPageHeader eyebrow="ARC IT Solutions" title="Client" italic="Onboarding" sub="Complete this form so your team can deliver the best possible results." />
 
       <div style={{ flex:1, overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(201,168,76,.12) transparent' }}>
-        <div style={{ maxWidth:680, margin:'0 auto', padding:'28px 24px', display:'flex', flexDirection:'column', gap:20 }}>
+        <div style={{ maxWidth:680, margin:'0 auto', padding:'clamp(14px,4vw,28px) clamp(14px,4vw,24px)', display:'flex', flexDirection:'column', gap:16 }}>
 
           {/* Project picker */}
           {projects.length > 1 && (
@@ -124,7 +124,7 @@ export function ClientOnboardingView({ projects }: { projects: Rich[] }) {
               {/* Step 3 */}
               <ArcCard>
                 <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:18 }}><Step n={3} active/><h3 style={{ fontFamily:'var(--font-serif)', fontWeight:600, color:'var(--c-cream)' }}>Assets &amp; Access</h3></div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:16 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:8, marginBottom:16 }}>
                   {ASSETS.map(({key,label}) => {
                     const checked = form.assets[key]??false;
                     return (

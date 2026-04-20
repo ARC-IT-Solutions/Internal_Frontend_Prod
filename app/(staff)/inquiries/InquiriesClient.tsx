@@ -134,6 +134,8 @@ export function InquiriesClient({ inquiries: init, employees, currentUser }: {
     <>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <PageShell
+        hasDetail={!!sel}
+        detailTitle="inquiries list"
         list={
           <>
             <ListHeader

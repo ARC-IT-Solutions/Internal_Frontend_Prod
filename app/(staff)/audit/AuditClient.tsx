@@ -34,12 +34,12 @@ export function AuditClient({ logs }: { logs: Paginated<AuditLog> }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden', background:'var(--s-bg)' }}>
-      <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)' }}>
+      <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)', flexWrap:'wrap' }}>
         <div>
           <h1 style={{ fontSize:13, fontWeight:700, color:'var(--s-text)' }}>Audit Logs</h1>
           <p style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--s-dim)', marginTop:1 }}>{logs.total.toLocaleString()} total records</p>
         </div>
-        <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center' }}>
+        <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
           <Select value={action} onChange={e=>setAction(e.target.value)} style={{ width:'auto', height:30, padding:'0 8px', fontSize:11 }}>
             <option value="">All Actions</option>
             {['CREATE','UPDATE','DELETE','STATUS_CHANGE','ASSIGN','LOGIN','LOGOUT','LOGIN_FAILED','FILE_UPLOAD','FILE_DOWNLOAD','PASSWORD_CHANGE'].map(a=><option key={a} value={a}>{a}</option>)}
@@ -57,8 +57,8 @@ export function AuditClient({ logs }: { logs: Paginated<AuditLog> }) {
           const ac = AC[log.action]??{bg:'rgba(72,79,88,.12)',color:'#6e7681'};
           return (
             <motion.div key={log.id} initial={{opacity:0}} animate={{opacity:1}} transition={{delay:i*0.01}}
-              style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'11px 20px', borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
-              <div style={{ width:120, flexShrink:0, paddingTop:1 }}>
+              style={{ display:'flex', alignItems:'flex-start', gap:10, padding:'10px 14px', borderBottom:'1px solid rgba(255,255,255,0.03)', flexWrap:'wrap' }}>
+              <div style={{ width:100, flexShrink:0, paddingTop:1, minWidth:80 }}>
                 <span style={{ fontSize:10, padding:'2px 7px', borderRadius:4, fontFamily:'var(--font-mono)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em', background:ac.bg, color:ac.color }}>{log.action.replace('_',' ')}</span>
               </div>
               <div style={{ flex:1, minWidth:0 }}>

@@ -57,6 +57,8 @@ export function InvoicesClient({ invoices, initialPayments, initialFocusId, curr
   return (
     <>
       <PageShell
+        hasDetail={!!sel}
+        detailTitle="invoices list"
         list={
           <>
             <ListHeader title="Invoices" count={invoices.total}

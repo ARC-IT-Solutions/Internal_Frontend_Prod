@@ -40,6 +40,8 @@ export function PaymentsClient({ invoices, currentUser, total }: { invoices: Ric
   return (
     <>
       <PageShell
+        hasDetail={!!sel}
+        detailTitle="payments list"
         list={
           <>
             <ListHeader title="Payments" count={total}/>

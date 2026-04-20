@@ -35,7 +35,7 @@ export function ClientProfileView({ user }: { user: User }) {
       <ArcPageHeader eyebrow="ARC IT Solutions" title="Your" italic="Profile" sub="Manage your account details and security settings." />
 
       <div style={{ flex:1, overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(201,168,76,.12) transparent' }}>
-        <motion.div style={{ maxWidth:520, margin:"0 auto", padding:"28px 24px", display:"flex", flexDirection:"column", gap:24 }} >
+        <motion.div style={{ maxWidth:520, margin:"0 auto", padding:"clamp(14px,4vw,28px) clamp(14px,4vw,24px)", display:"flex", flexDirection:"column", gap:22 }} >
 
           {/* Identity card */}
           <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:0.4,ease:[0.22,1,0.36,1]}}>

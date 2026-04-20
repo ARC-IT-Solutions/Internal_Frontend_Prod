@@ -33,6 +33,8 @@ export function UsersClient({ users, currentUser }: { users: Paginated<User>; cu
   return (
     <>
       <PageShell
+        hasDetail={!!sel}
+        detailTitle="users list"
         list={
           <>
             <ListHeader title="Users" count={users.total}
@@ -81,7 +83,7 @@ export function UsersClient({ users, currentUser }: { users: Paginated<User>; cu
                   </tbody></table>
                 </Section>
                 <Section label="Manage">
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:10 }}>
                     <Select label="Role" value={sel.role} onChange={e=>update('role',e.target.value)} style={{ width:'100%' }} disabled={isPend}>{ROLES.map(r=><option key={r} value={r}>{r}</option>)}</Select>
                     <Select label="Active" value={String(sel.is_active)} onChange={e=>update('is_active',e.target.value==='true')} style={{ width:'100%' }} disabled={isPend}><option value="true">Active</option><option value="false">Inactive</option></Select>
                     <Select label="Verified" value={String(sel.is_verified)} onChange={e=>update('is_verified',e.target.value==='true')} style={{ width:'100%' }} disabled={isPend}><option value="true">Verified</option><option value="false">Unverified</option></Select>

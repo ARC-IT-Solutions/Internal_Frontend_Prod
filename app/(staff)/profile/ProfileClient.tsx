@@ -36,7 +36,7 @@ export function ProfileClient({ currentUser }: { currentUser: User }) {
       <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)' }}>
         <h1 style={{ fontSize:13, fontWeight:700, color:'var(--s-text)' }}>My Profile</h1>
       </div>
-      <div style={{ flex:1, overflowY:'auto', padding:24, scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.06) transparent' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'clamp(14px,3vw,24px)', scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.06) transparent' }}>
         <div style={{ maxWidth:480, display:'flex', flexDirection:'column', gap:28 }}>
 
           {/* Identity */}

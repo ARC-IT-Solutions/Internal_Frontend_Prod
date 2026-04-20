@@ -51,9 +51,9 @@ export function MilestonesClient({ projects, initialMilestones, initialProjectId
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden', background:'var(--s-bg)' }}>
-      <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)' }}>
+      <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)', flexWrap:'wrap' }}>
         <h1 style={{ fontSize:13, fontWeight:700, color:'var(--s-text)' }}>Billing Milestones</h1>
-        <Select value={pid} onChange={e=>{setPid(e.target.value);load(e.target.value);}} style={{ width:260 }}>
+        <Select value={pid} onChange={e=>{setPid(e.target.value);load(e.target.value);}} style={{ width:'min(260px,100%)' }}>
           <option value="">Select project…</option>
           {projects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}
         </Select>
@@ -64,7 +64,7 @@ export function MilestonesClient({ projects, initialMilestones, initialProjectId
         {pid&&(
           <div style={{ maxWidth:700, display:'flex', flexDirection:'column', gap:16 }}>
             {(err||ok)&&<Alert type={err?'error':'success'} message={err||ok}/>}
-            {proj&&<div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
+            {proj&&<div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))', gap:10 }}>
               {[['Budget',proj.budget?money(proj.budget):'—'],['% Allocated',`${totalPct}%`],['Milestones',`${ms.filter(m=>m.status==='PAID').length}/${ms.length} paid`]].map(([l,v])=>(
                 <div key={l as string} style={{ padding:'14px 16px', borderRadius:10, background:'var(--s-raised)', border:'1px solid var(--s-border)' }}>
                   <div style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--s-dim)', marginBottom:4 }}>{l}</div>

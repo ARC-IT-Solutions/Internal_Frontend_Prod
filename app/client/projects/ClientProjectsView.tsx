@@ -39,9 +39,9 @@ export function ClientProjectsView({ projects }: { projects: Rich[] }) {
       <ArcPageHeader eyebrow="ARC IT Solutions" title="My" italic="Projects" sub="Track the progress of your ongoing work." />
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
-        {/* Project list */}
+        {/* Desktop project list sidebar */}
         {projects.length > 1 && (
-          <div style={{ width:224, flexShrink:0, borderRight:'1px solid var(--c-border)', background:'var(--c-surface)', overflowY:'auto', scrollbarWidth:'none' }}>
+          <div className="hide-mobile" style={{ width:224, flexShrink:0, borderRight:'1px solid var(--c-border)', background:'var(--c-surface)', overflowY:'auto', scrollbarWidth:'none' }}>
             <div style={{ padding:'14px 16px 6px', fontSize:9, fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase', color:'var(--c-muted)' }}>Projects</div>
             {projects.map(p => {
               const active = sel?.id === p.id;
@@ -55,12 +55,25 @@ export function ClientProjectsView({ projects }: { projects: Rich[] }) {
             })}
           </div>
         )}
+        {/* Mobile project dropdown */}
+        {projects.length > 1 && (
+          <div className="show-mobile" style={{ display:'none', flexShrink:0, padding:'10px 14px', borderBottom:'1px solid var(--c-border)', background:'var(--c-surface)' }}>
+            <select
+              value={sel?.id ?? ''}
+              onChange={e => setSel(projects.find(p => p.id === e.target.value) ?? null)}
+              style={{ width:'100%', height:40, padding:'0 12px', background:'var(--c-card)', border:'1px solid var(--c-border)', color:'var(--c-cream)', borderRadius:10, fontSize:13, fontFamily:'var(--font-sans)', outline:'none', cursor:'pointer' }}>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.title} — {STAGE_LABEL[p.status]}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Detail */}
         <AnimatePresence mode="wait">
           {sel && (
             <motion.div key={sel.id} initial={{opacity:0,x:8}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-8}} transition={{duration:0.25}}
-              style={{ flex:1, overflowY:'auto', padding:'28px 32px', display:'flex', flexDirection:'column', gap:24, scrollbarWidth:'thin', scrollbarColor:'rgba(201,168,76,.15) transparent' }}>
+              style={{ flex:1, overflowY:'auto', padding:'clamp(16px,4vw,32px)', display:'flex', flexDirection:'column', gap:20, scrollbarWidth:'thin', scrollbarColor:'rgba(201,168,76,.15) transparent' }}>
 
               {/* Title */}
               <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
@@ -82,7 +95,7 @@ export function ClientProjectsView({ projects }: { projects: Rich[] }) {
                 </div>
 
                 {/* Stage track */}
-                <div style={{ display:'flex', borderRadius:8, overflow:'hidden', border:'1px solid var(--c-border)', marginBottom:14 }}>
+                <div style={{ display:'flex', borderRadius:8, overflow:'auto', border:'1px solid var(--c-border)', marginBottom:14, scrollbarWidth:'none' }}>
                   {STAGES.map((stage, i) => {
                     const sp    = PCT[stage]??0;
                     const done  = pct >= sp;
@@ -125,7 +138,7 @@ export function ClientProjectsView({ projects }: { projects: Rich[] }) {
                   <span style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', fontFamily:'var(--font-mono)', color:'var(--c-dim)' }}>Project Details</span>
                   <div style={{ height:1, flex:1, background:'var(--c-border)' }}/>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:10 }}>
                   {[['Budget',sel.budget?money(sel.budget):'—'],['Priority',sel.priority],['Start',shortDate(sel.start_date)],['Delivery',shortDate(sel.end_date)]].map(([l,v])=>(
                     <div key={l} style={{ padding:'14px 16px', borderRadius:12, background:'var(--c-card)', border:'1px solid var(--c-border)' }}>
                       <div style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.14em', fontFamily:'var(--font-mono)', color:'var(--c-dim)', marginBottom:5 }}>{l}</div>

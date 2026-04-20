@@ -36,9 +36,9 @@ export function OnboardingClient({ projects, initialOnboarding, initialProjectId
 
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden', background:'var(--s-bg)' }}>
-      <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:16, padding:'12px 20px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)' }}>
+      <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom:'1px solid var(--s-border)', background:'var(--s-surface)', flexWrap:'wrap' }}>
         <h1 style={{ fontSize:13, fontWeight:700, color:'var(--s-text)' }}>Client Onboarding</h1>
-        <Select value={pid} onChange={e=>{setPid(e.target.value);load(e.target.value);}} style={{ marginLeft:'auto', width:280 }}>
+        <Select value={pid} onChange={e=>{setPid(e.target.value);load(e.target.value);}} style={{ marginLeft:'auto', width:'min(280px,100%)' }}>
           <option value="">Select a project…</option>
           {projects.map(p=><option key={p.id} value={p.id}>{p.title} ({p.status})</option>)}
         </Select>

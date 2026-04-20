@@ -43,7 +43,7 @@ export function ClientOverview({ user, projects, tickets, invoices }: {
       style={{ flex:1, overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(201,168,76,.15) transparent' }}>
 
       {/* ── Header ──────────────────────────────────────────── */}
-      <div style={{ padding:'32px 36px 28px', borderBottom:'1px solid var(--c-border)' }}>
+      <div style={{ padding:'clamp(16px,4vw,36px) clamp(16px,5vw,36px) clamp(16px,3vw,28px)', borderBottom:'1px solid var(--c-border)' }}>
         <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{duration:0.5,ease:[0.22,1,0.36,1]}} style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
           <span style={{ fontSize:10, letterSpacing:'0.22em', textTransform:'uppercase', fontFamily:'var(--font-mono)', color:'var(--c-dim)' }}>Client Portal</span>
           <div style={{ height:1, width:36, background:'var(--c-gold)', opacity:0.3 }}/>
@@ -57,7 +57,7 @@ export function ClientOverview({ user, projects, tickets, invoices }: {
         </motion.p>
       </div>
 
-      <div style={{ padding:'28px 36px', display:'flex', flexDirection:'column', gap:32 }}>
+      <div style={{ padding:'clamp(16px,4vw,36px)', display:'flex', flexDirection:'column', gap:'clamp(20px,4vw,32px)' }}>
 
         {/* ── Overdue alert ────────────────────────────────── */}
         {overdueInvoices.length > 0 && (
@@ -74,7 +74,7 @@ export function ClientOverview({ user, projects, tickets, invoices }: {
         )}
 
         {/* ── Stat cards ───────────────────────────────────── */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:'clamp(10px,2vw,16px)' }}>
           {[
             { label:'Active Projects', value:String(activeProjects.length), href:'/client/projects', italic:true },
             { label:'Open Tickets',    value:String(openTickets.length),    href:'/client/tickets',  italic:true },
@@ -132,7 +132,7 @@ export function ClientOverview({ user, projects, tickets, invoices }: {
                 );
               })()}
               {/* Meta */}
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14, paddingTop:16, borderTop:'1px solid var(--c-border)' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(100px,1fr))', gap:'clamp(8px,2vw,14px)', paddingTop:16, borderTop:'1px solid var(--c-border)' }}>
                 {[['Budget',activeProject.budget?money(activeProject.budget):'—'],['Start',shortDate(activeProject.start_date)],['Delivery',shortDate(activeProject.end_date)]].map(([l,v])=>(
                   <div key={l}>
                     <div style={{ fontSize:9, textTransform:'uppercase', letterSpacing:'0.14em', fontFamily:'var(--font-mono)', color:'var(--c-dim)', marginBottom:4 }}>{l}</div>
@@ -145,7 +145,7 @@ export function ClientOverview({ user, projects, tickets, invoices }: {
         )}
 
         {/* ── Two-col bottom ───────────────────────────────── */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))', gap:'clamp(12px,2vw,20px)' }}>
           {/* Tickets */}
           <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{duration:0.5,ease:[0.22,1,0.36,1]}}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>

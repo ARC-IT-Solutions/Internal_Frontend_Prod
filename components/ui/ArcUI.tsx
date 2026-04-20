@@ -51,8 +51,8 @@ export function ArcPageHeader({ eyebrow, title, italic, sub, action }: {
       initial={{ opacity:0, y:-8 }}
       animate={{ opacity:1, y:0 }}
       transition={{ duration:0.4, ease:[0.22,1,0.36,1] }}
-      style={{ flexShrink:0, padding:'32px 36px 24px', borderBottom:'1px solid var(--c-border)' }}>
-      <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:20 }}>
+      style={{ flexShrink:0, padding:'clamp(16px,4vw,32px) clamp(16px,5vw,36px) clamp(14px,3vw,24px)', borderBottom:'1px solid var(--c-border)' }}>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
         <div>
           {eyebrow && (
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
